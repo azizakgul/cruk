@@ -1,0 +1,27 @@
+{
+  "staging": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-cruk-staging-182635-authRole",
+      "UnauthRoleArn": "arn:aws:iam::049211703130:role/amplify-cruk-staging-182635-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::049211703130:role/amplify-cruk-staging-182635-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-cruk-staging-182635-deployment",
+      "UnauthRoleName": "amplify-cruk-staging-182635-unauthRole",
+      "StackName": "amplify-cruk-staging-182635",
+      "StackId": "arn:aws:cloudformation:us-east-1:049211703130:stack/amplify-cruk-staging-182635/69a00880-c0d7-11ec-bf15-128111ab84c3",
+      "AmplifyAppId": "d2iajqb0qmrxwq",
+      "APIGatewayAuthURL": "https://s3.amazonaws.com/amplify-cruk-staging-182635-deployment/amplify-cfn-templates/api/APIGatewayAuthStack.json"
+    },
+    "categories": {
+      "function": {
+        "donationsLambda": {
+          "deploymentBucketName": "amplify-cruk-staging-182635-deployment",
+          "s3Key": "amplify-builds/donationsLambda-56745677314d61304e6f-build.zip"
+        }
+      },
+      "auth": {
+        "undefined": {}
+      }
+    }
+  }
+}
