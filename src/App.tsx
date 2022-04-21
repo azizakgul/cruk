@@ -29,6 +29,23 @@ function App() {
     }
   }
 
+  async function saveDonation(donation:Donation):Promise<GetDonations|undefined>{
+
+    const lambdaUrl = "https://g3kfr51f9h.execute-api.us-east-1.amazonaws.com/staging/donations/"
+      
+    try {
+      const response = await axios.post(lambdaUrl, {
+        id: donation.email,
+        donation: donation.amount
+      });
+      return response as GetDonations
+      console.log(response);
+    } catch (error) {
+      console.error(error);
+      return
+    }
+  }
+
 
 
 
