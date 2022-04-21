@@ -22,8 +22,6 @@ function App() {
 
   useEffect(() => {
         
-    
-
   }, []);
 
   async function getDonations(email:string):Promise<DonationResponse|undefined>{
@@ -32,8 +30,9 @@ function App() {
       
     try {
       const response = await axios.get(`${lambdaUrl}${email}`);
-      return response as DonationResponse
-      console.log(response);
+      console.log(response.data);
+      return response.data as DonationResponse
+      
     } catch (error) {
       console.error(error);
       return
@@ -49,8 +48,10 @@ function App() {
         id: donation.email,
         donation: donation.amount
       });
-      return response as DonationResponse
-      console.log(response);
+
+      console.log(response.data);
+      return response.data as DonationResponse
+      
     } catch (error) {
       console.error(error);
       return
@@ -119,6 +120,7 @@ function App() {
 
     if(id === "getDonations"){
 
+      console.log("getting donations")
       try {
         const result = await getDonations(email)
 

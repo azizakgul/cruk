@@ -16,7 +16,7 @@
       "function": {
         "donationsLambda": {
           "deploymentBucketName": "amplify-cruk-staging-182635-deployment",
-          "s3Key": "amplify-builds/donationsLambda-56745677314d61304e6f-build.zip"
+          "s3Key": "amplify-builds/donationsLambda-66524b6a2f796a325374-build.zip"
         }
       },
       "auth": {
