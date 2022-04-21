@@ -81,5 +81,11 @@
         ]
       }
     }
+  },
+  "custom": {
+    "sns": {
+      "service": "customCDK",
+      "providerPlugin": "awscloudformation"
+    }
   }
 }
