@@ -84,7 +84,6 @@ app.get(path + hashKeyPath, function(req, res) {
     return
 
   }
-
   let queryParams = {
     TableName: tableName,
     KeyConditions: condition
@@ -118,81 +117,48 @@ function createGetDonationsMessage(items : DonationItem[]){
   return text
 }
 
+async function sendEmail(email : string){
+
+    console.log("Sending email")
+    
+    var ses = new AWS.SES({ region: "us-east-1" });
+    // exports.handler = async function (event) {
+        var params = {
+            Destination: {
+            ToAddresses: [email],
+            },
+            Message: {
+            Body: {
+                Text: { Data: "Test" },
+            },
+
+            Subject: { Data: "Test Email" },
+            },
+            Source: "hello@punchline.ai",
+        };
+        
+        ses.sendEmail(params).send((err, data) =>{
+            if(err){
+                console.error("Error sending email", err)
+                return false
+            }
+            
+
+            console.log("Mail sent: ", data)
+
+            return true
+                
+
+        }) 
+    // };
+}
+
 interface DonationItem {
     id          : string
     donation    : number
     timestamp   : number
 }
 
-/*****************************************
- * HTTP Get method for get single object *
- *****************************************/
-
-app.get(path + '/object' + hashKeyPath + sortKeyPath, function(req, res) {
-  const params = {};
-  if (userIdPresent && req.apiGateway) {
-    params[partitionKeyName] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
-  } else {
-    params[partitionKeyName] = req.params[partitionKeyName];
-    try {
-      params[partitionKeyName] = convertUrlType(req.params[partitionKeyName], partitionKeyType);
-    } catch(err) {
-      res.statusCode = 500;
-      res.json({error: 'Wrong column type ' + err});
-    }
-  }
-  if (hasSortKey) {
-    try {
-      params[sortKeyName] = convertUrlType(req.params[sortKeyName], sortKeyType);
-    } catch(err) {
-      res.statusCode = 500;
-      res.json({error: 'Wrong column type ' + err});
-    }
-  }
-
-  let getItemParams = {
-    TableName: tableName,
-    Key: params
-  }
-
-  dynamodb.get(getItemParams,(err, data) => {
-    if(err) {
-      res.statusCode = 500;
-      res.json({error: 'Could not load items: ' + err.message});
-    } else {
-      if (data.Item) {
-        res.json(data.Item);
-      } else {
-        res.json(data) ;
-      }
-    }
-  });
-});
-
-
-/************************************
-* HTTP put method for insert object *
-*************************************/
-
-app.put(path, function(req, res) {
-
-  if (userIdPresent) {
-    req.body['userId'] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
-  }
-
-  let putItemParams = {
-    TableName: tableName,
-    Item: req.body
-  }
-  dynamodb.put(putItemParams, (err, data) => {
-    if (err) {
-      res.statusCode = 500;
-      res.json({ error: err, url: req.url, body: req.body });
-    } else{
-      res.json({ success: 'put call succeed!', url: req.url, data: data })
-    }
-  });
-});
 
 /************************************
 * HTTP post method for insert object *
@@ -218,45 +184,7 @@ app.post(path, function(req, res) {
   });
 });
 
-/**************************************
-* HTTP remove method to delete object *
-***************************************/
 
-app.delete(path + '/object' + hashKeyPath + sortKeyPath, function(req, res) {
-  const params = {};
-  if (userIdPresent && req.apiGateway) {
-    params[partitionKeyName] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
-  } else {
-    params[partitionKeyName] = req.params[partitionKeyName];
-     try {
-      params[partitionKeyName] = convertUrlType(req.params[partitionKeyName], partitionKeyType);
-    } catch(err) {
-      res.statusCode = 500;
-      res.json({error: 'Wrong column type ' + err});
-    }
-  }
-  if (hasSortKey) {
-    try {
-      params[sortKeyName] = convertUrlType(req.params[sortKeyName], sortKeyType);
-    } catch(err) {
-      res.statusCode = 500;
-      res.json({error: 'Wrong column type ' + err});
-    }
-  }
-
-  let removeItemParams = {
-    TableName: tableName,
-    Key: params
-  }
-  dynamodb.delete(removeItemParams, (err, data)=> {
-    if (err) {
-      res.statusCode = 500;
-      res.json({error: err, url: req.url});
-    } else {
-      res.json({url: req.url, data: data});
-    }
-  });
-});
 
 app.listen(3000, function() {
   console.log("App started")
