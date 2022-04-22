@@ -2,9 +2,9 @@
 
 You can see a live demo from [this link](https://master.d2iajqb0qmrxwq.amplifyapp.com/)
 
-You can make a donation by entering an email and a donation amount.
-If you make more than 1 donation, an email will be sent to the email address.
-You can also check the total amount of donations given an email address.
+- You can make a donation by entering an email and a donation amount.
+- If you make more than 1 donation, an email will be sent to the email address.
+- You can also check the total amount of donations given an email address.
 
 ## App
 The app is built with React as a web app and AWS Amplify on the backend using Nodejs and Typescript.
