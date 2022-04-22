@@ -2,12 +2,16 @@
 
 You can see a live demo from [this link](https://master.d2iajqb0qmrxwq.amplifyapp.com/)
 
+You can make a donation by entering an email and a donation amount.
+If you make more than 1 donation, an email will be sent to the email address.
+You can also check the total amount of donations given an email address.
+
 ## App
 The app is built with React as a web app and AWS Amplify on the backend using Nodejs and Typescript.
 Dynamodb is used as the database and a lambda function is handling the backend logic.
 Donations are saved with the email of the donor, donation amount and timestamp.
 The logs are added and can be viewed from Cloudwatch.
-So currently the app is pretty scalable although in a production environment there would be more checks and details and the db schema would be very different ofcourse. (email would not be the primary key for example :)
+So currently the app is pretty scalable although in a production environment there would be more checks and details (like auth) and the db schema would be very different ofcourse. (email would not be the primary key for example :)
 
 ## Deployment
 You can deploy the app by making a new Amplify app and connecting to this repo.
