@@ -43,7 +43,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var AWS = require('aws-sdk');
 // import AWS from "aws-sdk"
-// import * as AWS from 'aws-sdk'
 var awsServerlessExpressMiddleware = require('aws-serverless-express/middleware');
 var bodyParser = require('body-parser');
 var express = require('express');
@@ -104,17 +103,19 @@ app.get(path + hashKeyPath, function (req, res) {
     }
     var email = req.params[partitionKeyName];
     if (validateEmail(email) === false) {
+        console.error("Error loading items: Wrong email format ", email);
         res.statusCode = 400;
         res.json({ error: "Wrong email format" });
         return;
     }
-    sendEmail(email);
     var queryParams = {
         TableName: tableName,
         KeyConditions: condition
     };
+    console.log("Getting donations for ", email);
     dynamodb.query(queryParams, function (err, data) {
         if (err) {
+            console.error("Error loading items", err);
             res.statusCode = 500;
             res.json({ error: 'Could not load items: ' + err });
         }
@@ -134,163 +135,108 @@ function createGetDonationsMessage(items) {
     var text = donationTimes < 2 ? "You have made ".concat(donationTimes, " donation totalling \u00A3").concat(totalDonationAmount) : "You have made ".concat(donationTimes, " donations totalling \u00A3").concat(totalDonationAmount, ". We just sent you a thank you mail :)");
     return text;
 }
-function sendEmail(email) {
-    return __awaiter(this, void 0, void 0, function () {
-        var ses, params;
-        return __generator(this, function (_a) {
-            console.log("Sending email");
-            ses = new AWS.SES({ region: "us-east-1" });
-            params = {
-                Destination: {
-                    ToAddresses: [email]
-                },
-                Message: {
-                    Body: {
-                        Text: { Data: "Test" }
-                    },
-                    Subject: { Data: "Test Email" }
-                },
-                Source: "hello@punchline.ai"
-            };
-            ses.sendEmail(params).send(function (err, data) {
-                if (err) {
-                    console.error("Error sending email", err);
-                    return false;
-                }
-                console.log("Mail sent: ", data);
-                return true;
-            });
-            return [2 /*return*/];
-        });
-    });
+function validateDonationAmount(amount) {
+    if (!amount || typeof amount !== "number" || amount < 1)
+        return false;
+    return true;
 }
-/*****************************************
- * HTTP Get method for get single object *
- *****************************************/
-app.get(path + '/object' + hashKeyPath + sortKeyPath, function (req, res) {
-    var params = {};
-    if (userIdPresent && req.apiGateway) {
-        params[partitionKeyName] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
-    }
-    else {
-        params[partitionKeyName] = req.params[partitionKeyName];
-        try {
-            params[partitionKeyName] = convertUrlType(req.params[partitionKeyName], partitionKeyType);
-        }
-        catch (err) {
-            res.statusCode = 500;
-            res.json({ error: 'Wrong column type ' + err });
-        }
-    }
-    if (hasSortKey) {
-        try {
-            params[sortKeyName] = convertUrlType(req.params[sortKeyName], sortKeyType);
-        }
-        catch (err) {
-            res.statusCode = 500;
-            res.json({ error: 'Wrong column type ' + err });
-        }
-    }
-    var getItemParams = {
-        TableName: tableName,
-        Key: params
-    };
-    dynamodb.get(getItemParams, function (err, data) {
-        if (err) {
-            res.statusCode = 500;
-            res.json({ error: 'Could not load items: ' + err.message });
-        }
-        else {
-            if (data.Item) {
-                res.json(data.Item);
-            }
-            else {
-                res.json(data);
-            }
-        }
-    });
-});
-/************************************
-* HTTP put method for insert object *
-*************************************/
-app.put(path, function (req, res) {
-    if (userIdPresent) {
-        req.body['userId'] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
-    }
-    var putItemParams = {
-        TableName: tableName,
-        Item: req.body
-    };
-    dynamodb.put(putItemParams, function (err, data) {
-        if (err) {
-            res.statusCode = 500;
-            res.json({ error: err, url: req.url, body: req.body });
-        }
-        else {
-            res.json({ success: 'put call succeed!', url: req.url, data: data });
-        }
-    });
-});
 /************************************
 * HTTP post method for insert object *
 *************************************/
 app.post(path, function (req, res) {
+    var _this = this;
     if (userIdPresent) {
         req.body['userId'] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
     }
+    var email = req.body["id"];
+    var amount = req.body["donation"];
+    console.log("Making a donation", req.body);
+    if (!email || !amount) {
+        res.statusCode = 400;
+        res.json({ error: "Missing data" });
+        return;
+    }
+    email = email.toLowerCase().trim();
+    if (validateEmail(email) === false) {
+        res.statusCode = 400;
+        res.json({ error: "Wrong email format" });
+        return;
+    }
+    if (validateDonationAmount(amount) === false) {
+        res.statusCode = 400;
+        res.json({ error: "Wrong amount" });
+        return;
+    }
+    var now = Math.floor(Date.now() / 1000);
+    var item = {
+        id: email,
+        donation: amount,
+        timestamp: now
+    };
+    console.log("Saving new donation", item);
     var putItemParams = {
         TableName: tableName,
-        Item: req.body
+        Item: item
     };
     dynamodb.put(putItemParams, function (err, data) {
         if (err) {
+            console.error("Error saving donation", err);
             res.statusCode = 500;
             res.json({ error: err, url: req.url, body: req.body });
+            return;
         }
-        else {
-            res.json({ success: 'post call succeed!', url: req.url, data: data });
-        }
-    });
-});
-/**************************************
-* HTTP remove method to delete object *
-***************************************/
-app["delete"](path + '/object' + hashKeyPath + sortKeyPath, function (req, res) {
-    var params = {};
-    if (userIdPresent && req.apiGateway) {
-        params[partitionKeyName] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
-    }
-    else {
-        params[partitionKeyName] = req.params[partitionKeyName];
-        try {
-            params[partitionKeyName] = convertUrlType(req.params[partitionKeyName], partitionKeyType);
-        }
-        catch (err) {
-            res.statusCode = 500;
-            res.json({ error: 'Wrong column type ' + err });
-        }
-    }
-    if (hasSortKey) {
-        try {
-            params[sortKeyName] = convertUrlType(req.params[sortKeyName], sortKeyType);
-        }
-        catch (err) {
-            res.statusCode = 500;
-            res.json({ error: 'Wrong column type ' + err });
-        }
-    }
-    var removeItemParams = {
-        TableName: tableName,
-        Key: params
-    };
-    dynamodb["delete"](removeItemParams, function (err, data) {
-        if (err) {
-            res.statusCode = 500;
-            res.json({ error: err, url: req.url });
-        }
-        else {
-            res.json({ url: req.url, data: data });
-        }
+        // Saved the donation 
+        // Get total donations to notify user
+        // Send email if donations are more than 1
+        var queryParams = {
+            TableName: tableName,
+            KeyConditionExpression: "id = :e",
+            ExpressionAttributeValues: {
+                ":e": email
+            }
+        };
+        dynamodb.query(queryParams, function (err, data) { return __awaiter(_this, void 0, void 0, function () {
+            var message_1, ses, params;
+            return __generator(this, function (_a) {
+                if (err) {
+                    console.error("Error loading items", err);
+                    res.statusCode = 500;
+                    res.json({ error: 'Could not load items: ' + err });
+                }
+                else {
+                    message_1 = createGetDonationsMessage(data.Items);
+                    if (data.Items.length > 1) {
+                        ses = new AWS.SES({ region: "us-east-1" });
+                        params = {
+                            Destination: {
+                                ToAddresses: [email]
+                            },
+                            Message: {
+                                Body: {
+                                    Text: { Data: "Hi, thank you for your donation of \u00A3".concat(amount, " :)") }
+                                },
+                                Subject: { Data: "Thank you for your donation" }
+                            },
+                            Source: "hello@punchline.ai"
+                        };
+                        ses.sendEmail(params).send(function (err, data) {
+                            if (err) {
+                                console.error("Error sending email", err);
+                                res.json({ message: message_1 });
+                            }
+                            console.log("Mail sent: ", data);
+                            res.json({ message: message_1 });
+                        });
+                        console.log("email is sent");
+                    }
+                    else {
+                        res.json({ message: message_1 });
+                    }
+                }
+                return [2 /*return*/];
+            });
+        }); });
+        // res.json({success: 'post call succeed!', url: req.url, data: data})
     });
 });
 app.listen(3000, function () {

@@ -53,7 +53,7 @@ function App() {
       return response.data as DonationResponse
       
     } catch (error) {
-      console.error(error);
+      console.error("Save donation error", error);
       return
     }
   }

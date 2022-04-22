@@ -11,7 +11,8 @@
       "rootDir": "./src",
       "paths": {
         "src": ["./lib"]
-      }
+      },
+      "esModuleInterop": true
     },
     "include": [
         "./src/**/*.ts",

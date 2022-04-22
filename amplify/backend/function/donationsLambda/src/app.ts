@@ -9,6 +9,7 @@ See the License for the specific language governing permissions and limitations 
 
 
 const AWS = require('aws-sdk')
+// import AWS from "aws-sdk"
 const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
 const bodyParser = require('body-parser')
 const express = require('express')
@@ -78,7 +79,7 @@ app.get(path + hashKeyPath, function(req, res) {
 
   const email = req.params[partitionKeyName]
   if(validateEmail(email) === false){
-
+    console.error(`Error loading items: Wrong email format `, email)
     res.statusCode = 400;
     res.json({error: "Wrong email format"});
     return
@@ -89,8 +90,11 @@ app.get(path + hashKeyPath, function(req, res) {
     KeyConditions: condition
   }
 
+  console.log("Getting donations for ", email)
+
   dynamodb.query(queryParams, (err, data) => {
     if (err) {
+        console.error(`Error loading items`, err)
       res.statusCode = 500;
       res.json({error: 'Could not load items: ' + err});
     } else {
@@ -117,40 +121,10 @@ function createGetDonationsMessage(items : DonationItem[]){
   return text
 }
 
-async function sendEmail(email : string){
+function validateDonationAmount(amount : number){
+    if(!amount || typeof amount !== "number" || amount < 1) return false
 
-    console.log("Sending email")
-    
-    var ses = new AWS.SES({ region: "us-east-1" });
-    // exports.handler = async function (event) {
-        var params = {
-            Destination: {
-            ToAddresses: [email],
-            },
-            Message: {
-            Body: {
-                Text: { Data: "Test" },
-            },
-
-            Subject: { Data: "Test Email" },
-            },
-            Source: "hello@punchline.ai",
-        };
-        
-        ses.sendEmail(params).send((err, data) =>{
-            if(err){
-                console.error("Error sending email", err)
-                return false
-            }
-            
-
-            console.log("Mail sent: ", data)
-
-            return true
-                
-
-        }) 
-    // };
+    return true
 }
 
 interface DonationItem {
@@ -170,17 +144,131 @@ app.post(path, function(req, res) {
     req.body['userId'] = req.apiGateway.event.requestContext.identity.cognitoIdentityId || UNAUTH;
   }
 
+  let email     = req.body["id"]
+  const amount  = req.body["donation"]
+
+  console.log("Making a donation", req.body)
+
+  if(!email || !amount){
+    res.statusCode = 400;
+    res.json({error: "Missing data"});
+    return
+  }
+
+  email = email.toLowerCase().trim()
+
+
+  if(validateEmail(email) === false){
+
+    res.statusCode = 400;
+    res.json({error: "Wrong email format"});
+    return
+  }
+
+  if(validateDonationAmount(amount) === false){
+
+    res.statusCode = 400;
+    res.json({error: "Wrong amount"});
+    return
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+  
+  const item = {
+    id          : email,
+    donation    : amount,
+    timestamp   : now 
+}
+
+  console.log(`Saving new donation`, item)
+
   let putItemParams = {
     TableName: tableName,
-    Item: req.body
+    Item: item
   }
+
   dynamodb.put(putItemParams, (err, data) => {
     if (err) {
+
+      console.error(`Error saving donation`, err)
+
       res.statusCode = 500;
       res.json({error: err, url: req.url, body: req.body});
-    } else {
-      res.json({success: 'post call succeed!', url: req.url, data: data})
+
+      return
     }
+
+    // Saved the donation 
+    // Get total donations to notify user
+    // Send email if donations are more than 1
+
+    let queryParams = {
+        TableName: tableName,
+        KeyConditionExpression: "id = :e",
+        ExpressionAttributeValues: {
+            ":e": email
+        }
+    }
+    
+    dynamodb.query(queryParams, async (err, data) => {
+        if (err) {
+            console.error(`Error loading items`, err)
+
+            res.statusCode = 500;
+            res.json({error: 'Could not load items: ' + err});
+        } else {
+
+            const message = createGetDonationsMessage(data.Items as DonationItem[])
+            
+            if(data.Items.length > 1){
+                // Send Email
+
+                var ses = new AWS.SES({ region: "us-east-1" });
+
+                var params = {
+                    Destination: {
+                    ToAddresses: [email],
+                    },
+                    Message: {
+                    Body: {
+                        Text: { Data: `Hi, thank you for your donation of £${amount} :)` },
+                    },
+
+                    Subject: { Data: "Thank you for your donation" },
+                    },
+                    Source: "hello@punchline.ai",
+                };
+                
+                ses.sendEmail(params).send((err, data) =>{
+                    if(err){
+                        console.error("Error sending email", err)
+                        res.json({message : message});
+                    }
+                    
+                    console.log("Mail sent: ", data)
+
+                    res.json({message : message});
+                    
+                }) 
+
+                console.log("email is sent")
+                    
+                
+                
+            }else{
+                res.json({message : message});
+            }
+            
+            
+            
+        }
+    })
+
+
+
+
+    // res.json({success: 'post call succeed!', url: req.url, data: data})
+    
   });
 });
 
