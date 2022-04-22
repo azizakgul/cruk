@@ -245,4 +245,5 @@ app.listen(3000, function () {
 // Export the app object. When executing the application local this does nothing. However,
 // to port it to AWS Lambda we will create a wrapper around that will load the app from
 // this file
-module.exports = app;
+
+module.exports = {app, validateEmail, validateDonationAmount};

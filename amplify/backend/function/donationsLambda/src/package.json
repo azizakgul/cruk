@@ -13,5 +13,8 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.92",
     "aws-sdk": "^2.1084.0"
+  },
+  "scripts": {
+    "test": "jest"
   }
 }

@@ -99,7 +99,7 @@ app.get(path + hashKeyPath, function(req, res) {
       res.json({error: 'Could not load items: ' + err});
     } else {
 
-      const message = createGetDonationsMessage(data.Items as DonationItem[])
+      const message = createGetDonationsMessage(data.Items as DonationItem[], true)
       res.json({message : message});
     }
   });
@@ -111,11 +111,15 @@ function validateEmail(email : string){
   return re.test(email);
 }
 
-function createGetDonationsMessage(items : DonationItem[]){
+function createGetDonationsMessage(items : DonationItem[], check? : boolean){
 
   const donationTimes = items.length
 
   const totalDonationAmount = items.reduce((t, v) => t + v.donation, 0)
+
+  if(check){
+    return `You have made ${donationTimes} donation totalling £${totalDonationAmount}`
+  }
    
   const text = donationTimes < 2 ? `You have made ${donationTimes} donation totalling £${totalDonationAmount}` : `You have made ${donationTimes} donations totalling £${totalDonationAmount}. We just sent you a thank you mail :)`
   return text
